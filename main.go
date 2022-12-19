@@ -1,15 +1,13 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"github.com/vladimirvivien/go4vl/device"
 	"github.com/vladimirvivien/go4vl/v4l2"
-	"image"
 	_ "image/jpeg"
 	"log"
-	"readBarcode/gozbar"
+	"reflect"
 	"strings"
 )
 
@@ -66,41 +64,46 @@ func main() {
 		camera.Close()
 	}()
 
+	for frame := range camera.GetOutput() {
+		fmt.Println(frame, reflect.TypeOf(frame))
+	}
+
 	// video stream
 
-	frames = camera.GetOutput()
+	/*
+		frames =
 
-	var frame []byte
-	for frame = range frames {
-		if len(frame) == 0 {
-			log.Print("skipping empty frame")
-			continue
-		}
-		//fmt.Println(frame)
-		break
-		img, _, imErr := image.Decode(bytes.NewReader(frame))
-		if imErr != nil {
+		var frame []byte
+		for frame = range frames {
+			if len(frame) == 0 {
+				log.Print("skipping empty frame")
+				continue
+			}
+			//fmt.Println(frame)
+			break
+			img, _, imErr := image.Decode(bytes.NewReader(frame))
+			if imErr != nil {
 
-			fmt.Println("imErr", imErr)
-		}
+				fmt.Println("imErr", imErr)
+			}
 
-		bounds := img.Bounds()
-		fmt.Println(bounds)
+			bounds := img.Bounds()
+			fmt.Println(bounds)
 
-		scanner := gozbar.NewScanner().
-			SetEnabledAll(true)
+			scanner := gozbar.NewScanner().
+				SetEnabledAll(true)
 
-		src := gozbar.NewImage(img)
-		symbols, _ := scanner.ScanImage(src)
+			src := gozbar.NewImage(img)
+			symbols, _ := scanner.ScanImage(src)
 
-		for _, s := range symbols {
-			data := s.Data
-			points := s.Boundary
+			for _, s := range symbols {
+				data := s.Data
+				points := s.Boundary
 
-			fmt.Println(data, points)
-		}
+				fmt.Println(data, points)
+			}
 
-	}
+		}*/
 
 	log.Printf("device capture started (buffer size set %d)", camera.BufferCount())
 	fmt.Println(frames)

@@ -54,6 +54,7 @@ func main() {
 		v4l2.PixelFormats[currFmt.PixelFormat],
 		currFmt.Width, currFmt.Height, frameRate,
 	)
+	fmt.Println("streamInfo", streamInfo)
 
 	// start capture
 	ctx, cancel := context.WithCancel(context.TODO())

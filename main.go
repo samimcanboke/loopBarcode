@@ -71,7 +71,6 @@ func main() {
 
 	var frame []byte
 	for frame = range frames {
-		fmt.Println(frame)
 		if len(frame) == 0 {
 			log.Print("skipping empty frame")
 			continue

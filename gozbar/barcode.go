@@ -8,7 +8,7 @@ import "C"
 // underlying zbar library.
 func Version() (major, minor, patch uint) {
 	var raw_major, raw_minor, raw_patch C.uint
-	C.zbar_version(&raw_major, &raw_minor)
+	C.zbar_version(&raw_major, &raw_minor, &raw_patch)
 	return uint(raw_major), uint(raw_minor), uint(raw_patch)
 }
 

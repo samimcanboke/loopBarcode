@@ -75,7 +75,9 @@ func main() {
 			log.Print("skipping empty frame")
 			continue
 		}
-		img, _, imErr := image.Decode(bytes.NewBuffer(frame))
+		fmt.Println(frame)
+		break
+		img, _, imErr := image.Decode(bytes.NewReader(frame))
 		if imErr != nil {
 
 			fmt.Println("imErr", imErr)

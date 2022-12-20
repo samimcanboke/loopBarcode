@@ -11,6 +11,7 @@ import (
 	"os"
 	"readBarcode/gozbar"
 	"strings"
+	"time"
 )
 
 var frames <-chan []byte
@@ -48,7 +49,7 @@ func main() {
 		log.Fatalf("unable to get format: %s", err)
 	}
 	log.Printf("Current format: %s", currFmt)
-	pixfmt := currFmt.PixelFormat
+	//pixfmt := currFmt.PixelFormat
 	streamInfo := fmt.Sprintf("%s - %s [%dx%d] %d fps",
 		caps.Card,
 		v4l2.PixelFormats[currFmt.PixelFormat],
@@ -79,10 +80,11 @@ func main() {
 	}
 
 	//barcode read
-	totalFrames := 1
+	totalFrames := 100
 	count := 0
-
+	start := time.Now()
 	for frame := range camera.GetOutput() {
+
 		fileName := "barcode.jpg"
 		file, err := os.Create(fileName)
 		if err != nil {
@@ -119,10 +121,10 @@ func main() {
 			break
 		}
 	}
+	elapsed := time.Since(start)
+	log.Printf("Binomial took %s", elapsed)
 
 	log.Printf("device capture started (buffer size set %d)", camera.BufferCount())
-	fmt.Println("pixfmt", pixfmt)
-	fmt.Println("streamInfo", streamInfo)
 
 }
 

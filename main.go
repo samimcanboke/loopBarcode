@@ -20,7 +20,7 @@ func main() {
     format := "MJPEG"
     width := 640
     height := 400
-    frameRate := 30
+    frameRate := 120
     buffSize := 4
     camera, err := device.Open(devName,
         device.WithIOType(v4l2.IOTypeMMAP),
@@ -65,6 +65,20 @@ func main() {
         cancel()
         camera.Close()
     }()
+
+    ctrls, err := v4l2.QueryAllExtControls(camera.Fd())
+    if err != nil {
+        log.Fatalf("failed to get ext controls: %s", err)
+    }
+    if len(ctrls) == 0 {
+        log.Println("Device does not have extended controls")
+        os.Exit(0)
+    }
+    for _, ctrl := range ctrls {
+        printControl(ctrl)
+    }
+
+    //barcode read
     totalFrames := 1
     count := 0
 
@@ -168,3 +182,22 @@ func getFormatType(fmtStr string) v4l2.FourCCType {
     }
     return v4l2.PixelFmtMPEG
 }
+
+func printControl(ctrl v4l2.Control) {
+    fmt.Printf("Control id (%d) name: %s\t[min: %d; max: %d; step: %d; default: %d current_val: %d]\n",
+        ctrl.ID, ctrl.Name, ctrl.Minimum, ctrl.Maximum, ctrl.Step, ctrl.Default, ctrl.Value)
+
+    if ctrl.IsMenu() {
+        menus, err := ctrl.GetMenuItems()
+        if err != nil {
+            return
+        }
+
+        for _, m := range menus {
+            fmt.Printf("\t(%d) Menu %s: [%d]\n", m.Index, m.Name, m.Value)
+        }
+    }
+
+}
+Footer
+

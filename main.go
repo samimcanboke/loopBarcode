@@ -80,7 +80,7 @@ func main() {
 		printControl(ctrl)
 	}
 
-	totalFrames := 1
+	totalFrames := 100
 	count := 0
 	start := time.Now()
 	for frame := range camera.GetOutput() {

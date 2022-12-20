@@ -80,7 +80,7 @@ func main() {
 	}
 
 	//barcode read
-	totalFrames := 100
+	totalFrames := 10
 	count := 0
 	start := time.Now()
 	for frame := range camera.GetOutput() {

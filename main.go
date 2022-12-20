@@ -1,163 +1,169 @@
 package main
 
 import (
-    "context"
-    "fmt"
-    "github.com/vladimirvivien/go4vl/device"
-    "github.com/vladimirvivien/go4vl/v4l2"
-    "image/jpeg"
-    _ "image/jpeg"
-    "log"
-    "os"
-    "readBarcode/gozbar"
-    "strings"
+	"context"
+	"fmt"
+	"github.com/vladimirvivien/go4vl/device"
+	"github.com/vladimirvivien/go4vl/v4l2"
+	"image/jpeg"
+	_ "image/jpeg"
+	"log"
+	"os"
+	"readBarcode/gozbar"
+	"strings"
 )
 
 var frames <-chan []byte
 
 func main() {
-    devName := "/dev/v4l/by-id/usb-CR_USB_Camera_20220907-video-index0"
-    format := "yuyv"
-    width := 640
-    height := 480
-    frameRate := 30
-    buffSize := 4
-    camera, err := device.Open(devName,
-        device.WithIOType(v4l2.IOTypeMMAP),
-        device.WithPixFormat(v4l2.PixFormat{PixelFormat: getFormatType(format), Width: uint32(width), Height: uint32(height), Field: v4l2.FieldAny}),
-        device.WithFPS(uint32(frameRate)),
-        device.WithBufferSize(uint32(buffSize)),
-    )
-    brightnessSetErr := camera.SetControlBrightness(0)
-    if brightnessSetErr != nil {
-        fmt.Println("brightnessSetErr", brightnessSetErr)
-    }
+	devName := "/dev/v4l/by-id/usb-CR_USB_Camera_20220907-video-index0"
+	format := "yuyv"
+	width := 640
+	height := 480
+	frameRate := 30
+	buffSize := 4
+	camera, err := device.Open(devName,
+		device.WithIOType(v4l2.IOTypeMMAP),
+		device.WithPixFormat(v4l2.PixFormat{PixelFormat: getFormatType(format), Width: uint32(width), Height: uint32(height), Field: v4l2.FieldAny}),
+		device.WithFPS(uint32(frameRate)),
+		device.WithBufferSize(uint32(buffSize)),
+	)
+	brightnessSetErr := camera.SetControlBrightness(0)
+	if brightnessSetErr != nil {
+		fmt.Println("brightnessSetErr", brightnessSetErr)
+	}
 
-    if err != nil {
-        log.Fatalf("failed to open device: %s", err)
-    }
-    defer camera.Close()
+	if err != nil {
+		log.Fatalf("failed to open device: %s", err)
+	}
+	defer camera.Close()
 
-    caps := camera.Capability()
-    log.Printf("device [%s] opened\n", devName)
-    log.Printf("device info: %s", caps.String())
+	caps := camera.Capability()
+	log.Printf("device [%s] opened\n", devName)
+	log.Printf("device info: %s", caps.String())
 
-    // set device format
-    currFmt, err := camera.GetPixFormat()
-    if err != nil {
-        log.Fatalf("unable to get format: %s", err)
-    }
-    log.Printf("Current format: %s", currFmt)
-    pixfmt := currFmt.PixelFormat
-    streamInfo := fmt.Sprintf("%s - %s [%dx%d] %d fps",
-        caps.Card,
-        v4l2.PixelFormats[currFmt.PixelFormat],
-        currFmt.Width, currFmt.Height, frameRate,
-    )
-    fmt.Println("streamInfo", streamInfo)
+	// set device format
+	currFmt, err := camera.GetPixFormat()
+	if err != nil {
+		log.Fatalf("unable to get format: %s", err)
+	}
+	log.Printf("Current format: %s", currFmt)
+	pixfmt := currFmt.PixelFormat
+	streamInfo := fmt.Sprintf("%s - %s [%dx%d] %d fps",
+		caps.Card,
+		v4l2.PixelFormats[currFmt.PixelFormat],
+		currFmt.Width, currFmt.Height, frameRate,
+	)
+	fmt.Println("streamInfo", streamInfo)
 
-    // start capture
-    ctx, cancel := context.WithCancel(context.TODO())
-    if err := camera.Start(ctx); err != nil {
-        log.Fatalf("stream capture: %s", err)
-    }
-    defer func() {
-        cancel()
-        camera.Close()
-    }()
-    totalFrames := 1
-    count := 0
+	// start capture
+	ctx, cancel := context.WithCancel(context.TODO())
+	if err := camera.Start(ctx); err != nil {
+		log.Fatalf("stream capture: %s", err)
+	}
+	defer func() {
+		cancel()
+		camera.Close()
+	}()
+	totalFrames := 1
+	count := 0
 
-    for frame := range camera.GetOutput() {
-        fileName := fmt.Sprintf("barcode.jpg", count)
-        file, err := os.Create(fileName)
-        if err != nil {
-            log.Printf("failed to create file %s: %s", fileName, err)
-            continue
-        }
-        if _, err := file.Write(frame); err != nil {
-            log.Printf("failed to write file %s: %s", fileName, err)
-            continue
-        }
-        src, _ := jpeg.Decode(file)
+	for frame := range camera.GetOutput() {
+		fileName := fmt.Sprintf("barcode.jpg", count)
+		file, err := os.Create(fileName)
+		if err != nil {
+			log.Printf("failed to create file %s: %s", fileName, err)
+			continue
+		}
+		if _, err := file.Write(frame); err != nil {
+			log.Printf("failed to write file %s: %s", fileName, err)
+			continue
+		}
+		src, imgReadErr := jpeg.Decode(file)
+		if imgReadErr != nil {
+			fmt.Println("imgReadErr", imgReadErr)
+		}
 
-        img := gozbar.NewImage(src)
-        scanner := gozbar.NewScanner().
-            SetEnabledAll(true)
+		img := gozbar.NewImage(src)
+		scanner := gozbar.NewScanner().
+			SetEnabledAll(true)
 
-        symbols, _ := scanner.ScanImage(img)
-        for _, s := range symbols {
-            fmt.Println(s.Type.Name(), s.Data, s.Quality, s.Boundary)
-        }
+		symbols, scanImageErr := scanner.ScanImage(img)
+		if scanImageErr != nil {
+			fmt.Println("scanImageErr", scanImageErr)
+		}
+		for _, s := range symbols {
+			fmt.Println(s.Type.Name(), s.Data, s.Quality, s.Boundary)
+		}
 
-        log.Printf("Saved file: %s", fileName)
-        if err := file.Close(); err != nil {
-            log.Printf("failed to close file %s: %s", fileName, err)
-        }
-        count++
-        if count >= totalFrames {
-            break
-        }
-    }
+		log.Printf("Saved file: %s", fileName)
+		if err := file.Close(); err != nil {
+			log.Printf("failed to close file %s: %s", fileName, err)
+		}
+		count++
+		if count >= totalFrames {
+			break
+		}
+	}
 
-    // video stream
+	// video stream
 
-    /*
-    	frames =
+	/*
+		frames =
 
-    	var frame []byte
-    	for frame = range frames {
-    		if len(frame) == 0 {
-    			log.Print("skipping empty frame")
-    			continue
-    		}
-    		//fmt.Println(frame)
-    		break
-    		img, _, imErr := image.Decode(bytes.NewReader(frame))
-    		if imErr != nil {
+		var frame []byte
+		for frame = range frames {
+			if len(frame) == 0 {
+				log.Print("skipping empty frame")
+				continue
+			}
+			//fmt.Println(frame)
+			break
+			img, _, imErr := image.Decode(bytes.NewReader(frame))
+			if imErr != nil {
 
-    			fmt.Println("imErr", imErr)
-    		}
+				fmt.Println("imErr", imErr)
+			}
 
-    		bounds := img.Bounds()
-    		fmt.Println(bounds)
+			bounds := img.Bounds()
+			fmt.Println(bounds)
 
-    		scanner := gozbar.NewScanner().
-    			SetEnabledAll(true)
+			scanner := gozbar.NewScanner().
+				SetEnabledAll(true)
 
-    		src := gozbar.NewImage(img)
-    		symbols, _ := scanner.ScanImage(src)
+			src := gozbar.NewImage(img)
+			symbols, _ := scanner.ScanImage(src)
 
-    		for _, s := range symbols {
-    			data := s.Data
-    			points := s.Boundary
+			for _, s := range symbols {
+				data := s.Data
+				points := s.Boundary
 
-    			fmt.Println(data, points)
-    		}
+				fmt.Println(data, points)
+			}
 
-    	}*/
+		}*/
 
-    log.Printf("device capture started (buffer size set %d)", camera.BufferCount())
-    fmt.Println(frames)
-    fmt.Println("pixfmt", pixfmt)
-    fmt.Println("streamInfo", streamInfo)
+	log.Printf("device capture started (buffer size set %d)", camera.BufferCount())
+	fmt.Println(frames)
+	fmt.Println("pixfmt", pixfmt)
+	fmt.Println("streamInfo", streamInfo)
 
 }
 
 func getFormatType(fmtStr string) v4l2.FourCCType {
-    switch strings.ToLower(fmtStr) {
-    case "jpeg":
-        return v4l2.PixelFmtJPEG
-    case "mpeg":
-        return v4l2.PixelFmtMPEG
-    case "mjpeg":
-        return v4l2.PixelFmtMJPEG
-    case "h264", "h.264":
-        return v4l2.PixelFmtH264
-    case "yuyv":
-        return v4l2.PixelFmtYUYV
-    case "rgb":
-        return v4l2.PixelFmtRGB24
-    }
-    return v4l2.PixelFmtMPEG
+	switch strings.ToLower(fmtStr) {
+	case "jpeg":
+		return v4l2.PixelFmtJPEG
+	case "mpeg":
+		return v4l2.PixelFmtMPEG
+	case "mjpeg":
+		return v4l2.PixelFmtMJPEG
+	case "h264", "h.264":
+		return v4l2.PixelFmtH264
+	case "yuyv":
+		return v4l2.PixelFmtYUYV
+	case "rgb":
+		return v4l2.PixelFmtRGB24
+	}
+	return v4l2.PixelFmtMPEG
 }

@@ -87,10 +87,11 @@ func main() {
 	for frame := range camera.GetOutput() {
 		fileName := "barcode.jpg"
 		file, err := os.Create(fileName)
-		img, _, err1 := image.Decode(bytes.NewReader(frame))
+		imgNew, _, err1 := image.Decode(bytes.NewReader(frame))
 		if err1 != nil {
 			fmt.Println("imagedecodeerr", err1)
 		}
+		fmt.Println(imgNew)
 
 		if err != nil {
 			log.Printf("failed to create file %s: %s", fileName, err)

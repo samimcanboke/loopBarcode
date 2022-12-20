@@ -15,7 +15,6 @@ import (
 	"os"
 	"readBarcode/gozbar"
 	"strings"
-	"time"
 )
 
 var frames <-chan []byte
@@ -83,10 +82,7 @@ func main() {
 	for _, ctrl := range ctrls {
 		printControl(ctrl)
 	}
-
-	totalFrames := 100
-	count := 0
-	start := time.Now()
+	//start := time.Now()
 	for frame := range camera.GetOutput() {
 
 		/*
@@ -129,14 +125,9 @@ func main() {
 		for _, s := range symbols {
 			fmt.Println(s.Type.Name(), s.Data, s.Quality, s.Boundary)
 		}
-
-		count++
-		if count >= totalFrames {
-			break
-		}
 	}
-	elapsed := time.Since(start)
-	log.Printf("Binomial took %s", elapsed)
+	//elapsed := time.Since(start)
+	//log.Printf("Binomial took %s", elapsed)
 
 	log.Printf("device capture started (buffer size set %d)", camera.BufferCount())
 	http.HandleFunc("/stream", imageServ)

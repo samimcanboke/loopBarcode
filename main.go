@@ -5,11 +5,9 @@ import (
     "fmt"
     "github.com/vladimirvivien/go4vl/device"
     "github.com/vladimirvivien/go4vl/v4l2"
-    "image/jpeg"
     _ "image/jpeg"
     "log"
     "os"
-    "readBarcode/gozbar"
     "strings"
 )
 
@@ -67,9 +65,8 @@ func main() {
     }()
     totalFrames := 1
     count := 0
-
     for frame := range camera.GetOutput() {
-        fileName := "barcode.jpg"
+        fileName := fmt.Sprintf("capture_%d.jpg", count)
         file, err := os.Create(fileName)
         if err != nil {
             log.Printf("failed to create file %s: %s", fileName, err)
@@ -83,28 +80,50 @@ func main() {
         if err := file.Close(); err != nil {
             log.Printf("failed to close file %s: %s", fileName, err)
         }
-
-        fin, _ := os.Open(fileName)
-        defer fin.Close()
-        src, _ := jpeg.Decode(fin)
-
-        img := gozbar.NewImage(src)
-        scanner := gozbar.NewScanner().
-            SetEnabledAll(true)
-
-        symbols, scanImageErr := scanner.ScanImage(img)
-        if scanImageErr != nil {
-            fmt.Println("scanImageErr", scanImageErr)
-        }
-        for _, s := range symbols {
-            fmt.Println(s.Type.Name(), s.Data, s.Quality, s.Boundary)
-        }
-
         count++
         if count >= totalFrames {
             break
         }
     }
+
+    /*for frame := range camera.GetOutput() {
+    	fileName := "barcode.jpg"
+    	file, err := os.Create(fileName)
+    	if err != nil {
+    		log.Printf("failed to create file %s: %s", fileName, err)
+    		continue
+    	}
+    	if _, err := file.Write(frame); err != nil {
+    		log.Printf("failed to write file %s: %s", fileName, err)
+    		continue
+    	}
+    	log.Printf("Saved file: %s", fileName)
+    	if err := file.Close(); err != nil {
+    		log.Printf("failed to close file %s: %s", fileName, err)
+    	}
+
+    	fin, _ := os.Open(fileName)
+    	defer fin.Close()
+    	src, _ := jpeg.Decode(fin)
+    	fmt.Println(src)
+
+    	img := gozbar.NewImage(src)
+    	scanner := gozbar.NewScanner().
+    		SetEnabledAll(true)
+
+    	symbols, scanImageErr := scanner.ScanImage(img)
+    	if scanImageErr != nil {
+    		fmt.Println("scanImageErr", scanImageErr)
+    	}
+    	for _, s := range symbols {
+    		fmt.Println(s.Type.Name(), s.Data, s.Quality, s.Boundary)
+    	}
+
+    	count++
+    	if count >= totalFrames {
+    		break
+    	}
+    }*/
 
     // video stream
 

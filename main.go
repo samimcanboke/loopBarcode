@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/vladimirvivien/go4vl/device"
 	"github.com/vladimirvivien/go4vl/v4l2"
+	"image"
 	"image/jpeg"
 	_ "image/jpeg"
 	"log"
@@ -79,13 +81,17 @@ func main() {
 		printControl(ctrl)
 	}
 
-	//barcode read
 	totalFrames := 10
 	count := 0
 	start := time.Now()
 	for frame := range camera.GetOutput() {
 		fileName := "barcode.jpg"
 		file, err := os.Create(fileName)
+		img, _, err1 := image.Decode(bytes.NewReader(frame))
+		if err1 != nil {
+			fmt.Println("imagedecodeerr", err1)
+		}
+
 		if err != nil {
 			log.Printf("failed to create file %s: %s", fileName, err)
 			continue
@@ -101,6 +107,7 @@ func main() {
 
 		fin, _ := os.Open(fileName)
 		defer fin.Close()
+
 		src, _ := jpeg.Decode(fin)
 
 		img := gozbar.NewImage(src)

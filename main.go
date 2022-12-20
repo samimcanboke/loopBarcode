@@ -84,7 +84,6 @@ func main() {
 	count := 0
 	start := time.Now()
 	for frame := range camera.GetOutput() {
-
 		fileName := "barcode.jpg"
 		file, err := os.Create(fileName)
 		if err != nil {
@@ -95,7 +94,7 @@ func main() {
 			log.Printf("failed to write file %s: %s", fileName, err)
 			continue
 		}
-		log.Printf("Saved file: %s", fileName)
+		//log.Printf("Saved file: %s", fileName)
 		if err := file.Close(); err != nil {
 			log.Printf("failed to close file %s: %s", fileName, err)
 		}
